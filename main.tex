@@ -1,0 +1,172 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+% =========================================================
+% VESIT MINI PROJECT - 2B REPORT TEMPLATE
+% Department of Artificial Intelligence and Data Science
+% Academic Year: 2026--2027
+% =========================================================
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cite}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+\usepackage{etoolbox}
+\usepackage{pdflscape}
+
+% ---------------------------------------------------------
+% Page setup (Standard Academic Margins)
+% ---------------------------------------------------------
+\geometry{
+    a4paper,
+    left=1.5in,
+    right=1in,
+    top=1in,
+    bottom=1in
+}
+
+\onehalfspacing
+\setlength{\parindent}{0.5in}
+\setlength{\parskip}{0pt}
+
+% ---------------------------------------------------------
+% Project details configuration
+% ---------------------------------------------------------
+\input{project_details}
+
+% =========================================================
+% HEADER AND FOOTER
+% =========================================================
+
+\pagestyle{fancy}
+\fancyhf{}
+
+% Header
+\fancyhead[L]{\small\bfseries \leftheader}
+\fancyhead[R]{\small\bfseries \rightheader}
+
+% Header line
+\renewcommand{\headrulewidth}{0.5pt}
+
+% Footer
+\fancyfoot[C]{\thepage}
+
+% Footer line
+\renewcommand{\footrulewidth}{0pt}
+
+% Header/footer spacing
+\setlength{\headheight}{16pt}
+
+% Make chapter-opening pages use the same header/footer
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyhead[L]{\small\bfseries \leftheader}
+    \fancyhead[R]{\small\bfseries \rightheader}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0.5pt}
+    \renewcommand{\footrulewidth}{0pt}
+}
+
+% ---------------------------------------------------------
+% Chapter formatting
+% ---------------------------------------------------------
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\centering}
+  {\chaptername\ \thechapter}
+  {10pt}
+  {\Large}
+
+\titlespacing*{\chapter}{0pt}{-10pt}{25pt}
+
+% ---------------------------------------------------------
+% Captions
+% ---------------------------------------------------------
+\captionsetup{
+    font=small,
+    labelfont=bf,
+    justification=centering
+}
+
+% ---------------------------------------------------------
+% Code listing style
+% ---------------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny,
+    showstringspaces=false,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{teal},
+    backgroundcolor=\color{black!2}
+}
+
+\begin{document}
+
+% =========================================================
+% FRONT MATTER
+% =========================================================
+\pagenumbering{roman}
+
+\input{frontmatter/titlepage}
+\input{frontmatter/certificate}
+\input{frontmatter/declaration}
+\input{frontmatter/acknowledgement}
+\input{frontmatter/abstract}
+
+\tableofcontents
+\listoffigures
+\listoftables
+\input{frontmatter/abbreviations}
+
+% =========================================================
+% MAIN CONTENT
+% =========================================================
+\clearpage
+\pagenumbering{arabic}
+
+\input{chapters/chapter1_introduction}
+\input{chapters/chapter2_literature_review}
+\input{chapters/chapter3_proposed_methodology}
+\input{chapters/chapter4_system_design}
+\input{chapters/chapter5_implementation}
+\input{chapters/chapter6_results_discussion}
+\input{chapters/chapter7_conclusion}
+
+% =========================================================
+% REFERENCES
+% =========================================================
+\clearpage
+\addcontentsline{toc}{chapter}{References}
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+% =========================================================
+% APPENDIX & LOGBOOK
+% =========================================================
+\clearpage
+\appendix
+\input{appendix/appendix}
+\input{logbook}
+
+\end{document}

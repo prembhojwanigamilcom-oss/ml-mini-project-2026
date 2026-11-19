@@ -1,0 +1,97 @@
+\chapter{System Design}
+\label{ch:system_design}
+
+\section{System Architecture}
+\label{sec:system_architecture}
+
+The system architecture is engineered as a modular, decoupled processing pipeline designed to isolate and quantify experimental randomness in machine learning workflows. Figure \ref{fig:sys_arch} illustrates the high-level architecture, encompassing five interconnected modules: Data Ingestion and Validation, Exploratory Data Analysis, Stratified Preprocessing, Multi-Seed Experimental Execution, and Stability Analytics.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/fig_system_architecture.png}
+\caption{End-to-End System Architecture for Machine Learning Randomness and Stability Analysis}
+\label{fig:sys_arch}
+\end{figure}
+
+The pipeline executes deterministically through explicitly managed random seeds, ensuring that intermediate artifacts (subsampled frames, scaled tensors, and split indices) remain strictly reproducible across computational runs.
+
+\section{System Workflow and Use Case Modeling}
+\label{sec:system_workflow}
+
+The operational workflow follows a strict sequential lifecycle:
+\begin{enumerate}
+    \item \textbf{Ingestion Trigger:} The user or automated script initiates the pipeline, loading the 581,012 records from the scikit-learn repository.
+    \item \textbf{Exploratory Profiling:} Data distributions, continuous feature skews, and inter-feature correlations are profiled.
+    \item \textbf{Stratified Sampling:} A 10,000-instance subsample is extracted using a fixed random seed to maintain exact class proportions.
+    \item \textbf{Phase 1 Evaluation:} Baseline models (Decision Tree, Random Forest, Linear SVM) are trained on an 80/20 train-test partition using baseline seed $S_0=42$.
+    \item \textbf{Phase 2 Sensitivity Assessment:} The data partitioner iterates over five distinct random seeds ($\mathcal{S}_{\text{split}} = \{0, 1, 42, 99, 123\}$). For each seed, preprocessing scalers are re-fit strictly on the training partition, models are trained from scratch, and test metrics are logged.
+    \item \textbf{Phase 3 Cross-Validation \& Reproducibility:} 5-fold cross-validation is executed across three shuffle seeds ($\mathcal{S}_{\text{cv}} = \{11, 22, 33\}$), followed by duplicate back-to-back runs to verify bitwise output equality.
+    \item \textbf{Reporting \& Visualization:} Aggregated statistical summaries, standard deviations, and diagnostic plots are generated.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.3cm, auto]
+    \tikzstyle{block} = [rectangle, draw, fill=blue!10, text width=12em, text centered, rounded corners, minimum height=2.2em]
+    \tikzstyle{cloud} = [ellipse, draw, fill=green!15, text width=10em, text centered, minimum height=2.0em]
+    \tikzstyle{line} = [draw, -latex', thick]
+    
+    \node [cloud] (data) {Forest CoverType Data\\(581,012 samples, 54 features)};
+    \node [block, below of=data] (eda) {EDA \& Stratified Sample\\(10,000 samples, Class Preserved)};
+    \node [block, below of=eda] (split) {Controlled Data Partitioning\\(Split Seeds: 0, 1, 42, 99, 123)};
+    \node [block, below of=split] (train) {Model Training \& Scaling\\(DT, RF, Linear SVM)};
+    \node [block, below of=train] (cv) {Cross-Validation \& Repro Audit\\(CV Seeds: 11, 22, 33)};
+    \node [cloud, below of=cv] (out) {Stability Analytics \& Plots\\($\mu, \sigma$, Bitwise Verification)};
+    
+    \path [line] (data) -- (eda);
+    \path [line] (eda) -- (split);
+    \path [line] (split) -- (train);
+    \path [line] (train) -- (cv);
+    \path [line] (cv) -- (out);
+\end{tikzpicture}
+\caption{System Workflow Pipeline Diagram}
+\label{fig:workflow_flowchart}
+\end{figure}
+
+\section{Data Flow Modeling}
+\label{sec:data_flow}
+
+Data flow within the system is modeled across two hierarchical levels:
+
+\subsection{Level 0 Data Flow (Context Diagram)}
+At the context level, external input consists of the raw Forest CoverType data and user-defined seed arrays. The system processes these inputs and produces stability metrics, performance tables, and diagnostic plots.
+
+\subsection{Level 1 Data Flow (Decomposed Processes)}
+At Level 1, the transformation flow is partitioned into five distinct computational stages:
+\begin{itemize}
+    \item \textbf{Process 1.0 (Data Stratifier):} Consumes the full dataset and outputs the class-balanced 10,000-sample dataset $\mathcal{D}_{\text{sub}}$.
+    \item \textbf{Process 2.0 (Train-Test Splitter):} Accepts $\mathcal{D}_{\text{sub}}$ and split seed $s \in \mathcal{S}_{\text{split}}$, generating paired splits $(\mathbf{X}_{\text{train}}^s, \mathbf{y}_{\text{train}}^s)$ and $(\mathbf{X}_{\text{test}}^s, \mathbf{y}_{\text{test}}^s)$.
+    \item \textbf{Process 3.0 (Preprocessing Engine):} Fits \texttt{StandardScaler} strictly on continuous columns of $\mathbf{X}_{\text{train}}^s$, transforms continuous columns in both sets, and concatenates normalized columns with untouched binary features.
+    \item \textbf{Process 4.0 (Model Execution Engine):} Trains Decision Tree, Random Forest, and Linear SVM models and computes predictions $\hat{\mathbf{y}}^s$.
+    \item \textbf{Process 5.0 (Metric Aggregator):} Gathers point metrics across all seeds, computing statistical distributions ($\mu, \sigma$), cross-validation summaries, and bitwise verification flags.
+\end{itemize}
+
+\section{Module Description}
+\label{sec:module_description}
+
+The system comprises five core software modules:
+
+\paragraph{Module 1: Ingestion and Stratified Sampler}
+Interfaces with \texttt{sklearn.datasets.fetch\_covtype} to load feature matrices and target arrays. Handles initial type verification and executes stratified sampling using \texttt{StratifiedShuffleSplit} to guarantee identical class distributions between the sample and the population.
+
+\paragraph{Module 2: Feature Transformation Engine}
+Maintains strict segregation between continuous cartographic features ($p_{\text{cont}} = 10$) and binary soil/wilderness indicators ($p_{\text{bin}} = 44$). Implements \texttt{StandardScaler} normalization exclusively on training continuous features to guarantee zero information leakage.
+
+\paragraph{Module 3: Baseline Classifier Hub}
+Encapsulates model initialization, hyperparameter assignment, and baseline fitting using a standardized seed ($S_0 = 42$). Generates classification reports, confusion matrices, and multi-class F1 benchmarks.
+
+\paragraph{Module 4: Split-Seed Sensitivity Harness}
+Orchestrates systematic multi-seed iterations across seed values $\{0, 1, 42, 99, 123\}$. Records metrics into structured pandas DataFrames, enabling variance quantification and comparative distribution profiling.
+
+\paragraph{Module 5: Cross-Validation \& Reproducibility Auditor}
+Executes $5$-fold stratified cross-validation across three distinct shuffle seeds $\{11, 22, 33\}$. Furthermore, executes duplicate training runs with identical seed parameters and computes bitwise equality checks across prediction arrays ($\hat{\mathbf{y}}_1 == \hat{\mathbf{y}}_2$).
+
+\section{Summary}
+\label{sec:design_summary}
+
+The system design establishes a clean, decoupled architecture that isolates stochastic variables while enforcing strict experimental hygiene. The modular structure guarantees that all preprocessing, training, and evaluation steps operate deterministically. The implementation of this architecture is presented in Chapter \ref{ch:implementation}.

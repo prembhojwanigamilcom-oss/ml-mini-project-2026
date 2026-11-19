@@ -1,0 +1,19 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Machine learning experiments are inherently stochastic: pseudo-random number seeds govern data splitting, model weight initialization, bootstrap sampling, and fold assignment in cross-validation. Without rigorous seed management, repeated runs of the same experiment produce varying outcomes, impairing fair model benchmarking and compromising research reproducibility. This project systematically investigates the impact of experimental randomness on the stability and reproducibility of three representative classification algorithms---Decision Tree, Random Forest, and Linear Support Vector Machine (Linear SVM)---evaluated on the canonical Forest CoverType dataset.
+
+The Forest CoverType dataset, sourced from the UCI Machine Learning Repository via \texttt{scikit-learn}, encompasses 581,012 samples characterized by 54 features (10 continuous cartographic measurements, 4 binary wilderness area indicators, and 40 binary soil-type indicators). To maintain computational tractability while preserving class frequencies, a stratified random subsample of 10,000 records was curated with strict class distribution preservation.
+
+Three empirical investigations were conducted:
+\begin{enumerate}
+    \item \textbf{Baseline Performance Assessment:} Evaluating classification metrics (Accuracy, Macro-F1, Precision, Recall) across algorithms on a standardized 80/20 stratified train-test split.
+    \item \textbf{Split Seed Sensitivity Analysis:} Benchmarking model accuracy variance across five distinct random split seeds (0, 1, 42, 99, 123) under identical hyperparameter configurations.
+    \item \textbf{Cross-Validation \& Reproducibility Auditing:} Performing repeated 5-fold stratified cross-validation across three shuffle seeds (11, 22, 33) to measure fold-allocation variance, alongside a bitwise prediction verification verifying deterministic reproducibility across execution cycles.
+\end{enumerate}
+
+Empirical results demonstrate that Random Forest achieves superior classification performance (80.80\% baseline accuracy, Macro-F1 0.732) and exhibits the greatest stability with the lowest performance standard deviation across split seeds ($\sigma = 0.58\%$). In contrast, Decision Tree achieves 76.35\% accuracy with higher variance ($\sigma = 0.81\%$), while Linear SVM achieves 71.10\% accuracy ($\sigma = 0.94\%$). The reproducibility audit validates that fixing random seeds guarantees byte-for-byte identical predictions in deterministic environments. This study establishes guidelines for seed transparency, stratified resampling, and robust statistical reporting in applied machine learning.
+
+\vspace{1.0cm}
+
+\noindent \textbf{Keywords:} Machine Learning Reproducibility, Experimental Randomness, Model Stability, Forest CoverType, Random Forest, Decision Tree, Support Vector Machine, Cross-Validation Variance.

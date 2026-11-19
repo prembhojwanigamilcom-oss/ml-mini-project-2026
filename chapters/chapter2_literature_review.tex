@@ -1,0 +1,89 @@
+\chapter{Literature Review}
+\label{ch:literature_review}
+
+\section{Introduction}
+\label{sec:lit_intro}
+
+Reproducibility and robustness constitute foundational pillars of the scientific method. In computational disciplines such as machine learning and artificial intelligence, an experiment is termed reproducible if an independent researcher, using identical raw data and source code under matching computational conditions, obtains identical or statistically indistinguishable results. However, modern empirical machine learning literature frequently exhibits what prominent researchers refer to as a \textit{reproducibility crisis}. Studies frequently report minor performance margins (e.g., $0.5\%$--$1.5\%$ gains) derived from a single experimental iteration without confidence intervals, statistical hypothesis tests, or explicit seed tracking.
+
+This chapter systematically examines prior literature across three core thematic domains: (i) foundational classification studies on the Forest CoverType benchmark, (ii) algorithmic principles of the benchmarked classifiers, and (iii) recent scholarly investigations into experimental randomness, seed variance, and machine learning stability.
+
+\section{Existing Systems}
+\label{sec:existing_systems}
+
+Traditional machine learning benchmarking systems and automated modeling pipelines historically focused almost exclusively on point performance metrics, such as raw classification accuracy or area under the ROC curve (ROC-AUC). Standard practice commonly involves:
+\begin{enumerate}
+    \item Splitting data using arbitrary default seeds (such as \texttt{random\_state=42} or \texttt{None});
+    \item Executing a single training-testing cycle;
+    \item Selecting the model exhibiting the highest point accuracy;
+    \item Publishing or deploying the model without quantifying stability or variance across alternative partitions.
+\end{enumerate}
+
+Such conventional approaches suffer from substantial limitations. When test sets are small or feature distributions are heterogeneous, performance estimates derived from a single partition exhibit high variance. Furthermore, without controlling seed stochasticity, what appears to be an algorithmic advancement may simply be the consequence of a favorable data partition.
+
+\section{Review of Research Papers}
+\label{sec:review_papers}
+
+The academic literature relevant to this study is reviewed systematically below:
+
+\paragraph{Forest CoverType Benchmarking:}
+The landmark study by Blackard and Dean (1999) \cite{blackard1999comparative} introduced the Forest CoverType dataset to evaluate the comparative predictive capabilities of artificial neural networks (ANNs) versus multivariate discriminant analysis (MDA). Their findings demonstrated that non-linear architectures outperformed linear classifiers, with ANNs achieving approximately 70.5\% accuracy compared to 58.4\% for MDA. Their work established cartographic and elevation variables as dominant predictors of forest species distribution, while highlighting the difficulty of handling severe class imbalance across the seven categories.
+
+\paragraph{Algorithmic Foundations of Classifiers:}
+Quinlan (1986) \cite{quinlan1986induction} formulated the foundational principles of top-down induction of decision trees (TDIDT), culminating in the CART and C4.5 algorithms. Decision trees partition feature space orthogonal to feature axes using impurity criteria such as Gini impurity or Shannon entropy. While highly interpretable, individual decision trees are notoriously high-variance estimators: minor perturbations in training instances near split boundaries can cascade into entirely distinct tree structures.
+
+To mitigate tree instability, Breiman (2001) \cite{breiman2001random} introduced the Random Forest algorithm. By combining bootstrap aggregating (bagging) with random feature subspacing at each candidate split, Random Forest dramatically reduces estimator variance without inflating bias. Breiman proved mathematically that as the number of ensemble trees grows, the generalization error converges to a bounded limit, rendering the ensemble remarkably resilient to localized noise.
+
+Cortes and Vapnik (1995) \cite{cortes1995support} introduced Support Vector Networks (SVM), which formulate classification as a convex quadratic optimization problem aimed at maximizing the geometric margin between hyperplanes separating distinct classes. For high-dimensional datasets with extensive binary indicators, linear SVMs offer strong theoretical guarantees against overfitting, though their sensitivity to feature magnitude necessitates careful feature normalization.
+
+Pedregosa et al. (2011) \cite{pedregosa2011scikit} developed \texttt{scikit-learn}, an open-source machine learning library in Python providing unified APIs for classification, regression, and clustering. The library standardizes pseudo-random number generator management via explicit \texttt{random\_state} parameters across estimators and data-splitting routines, establishing the foundational software substrate for modern reproducible ML research.
+
+\paragraph{Empirical Studies on Randomness and Reproducibility:}
+In recent years, the machine learning community has increasingly scrutinized the role of pseudo-random seeds. Bouthillier et al. (2019) \cite{bouthillier2019unreproducible} conducted an extensive empirical study on the sources of variance in deep learning, demonstrating that data order and random initialization account for substantial performance dispersion that often exceeds reported state-of-the-art margins. They argued that reporting distributions across multiple seeds is essential for scientific validity.
+
+Dodge et al. (2020) \cite{dodge2020fine} demonstrated that in fine-tuning large language models, varying solely the random seed while keeping all hyperparameters identical yielded dramatic differences in validation accuracy, with some seeds failing to converge altogether. They advocated for explicit seed reporting and multi-seed averaging as mandatory publication standards.
+
+Lucic et al. (2018) \cite{lucic2018gans} conducted a large-scale computational study on generative adversarial networks (GANs), demonstrating that algorithmic improvements reported across multiple publications were statistically indistinguishable once seed variance and hyperparameter budgets were strictly controlled.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Comprehensive Summary of Reviewed Research Literature}
+\label{tab:literature_summary}
+\begin{tabular}{p{2.2cm} p{2.8cm} p{3.2cm} p{3.2cm} p{2.2cm}}
+\toprule
+\textbf{Author(s) \& Year} & \textbf{Title / Domain} & \textbf{Methodology} & \textbf{Key Findings} & \textbf{Relevance to Project} \\
+\midrule
+Blackard \& Dean (1999) \cite{blackard1999comparative} & Forest CoverType Prediction & Compared ANNs and Discriminant Analysis on 581k records & ANNs (70.5\%) outperformed MDA (58.4\%); cartography is predictive & Dataset source and baseline domain benchmark \\
+\midrule
+Breiman (2001) \cite{breiman2001random} & Random Forests & Bagging plus random subspace feature selection & Variance reduction through de-correlated trees & Theoretical basis for RF stability \\
+\midrule
+Pedregosa et al. (2011) \cite{pedregosa2011scikit} & Scikit-learn ML in Python & Modular Python ML framework with explicit PRNG & Standardized estimator API and seed control & Implementation framework \\
+\midrule
+Bouthillier et al. (2019) \cite{bouthillier2019unreproducible} & Unreproducible Research & Empirical decomposition of ML variance sources & Seed variance often exceeds model improvement margins & Motivation for split seed sensitivity testing \\
+\midrule
+Dodge et al. (2020) \cite{dodge2020fine} & Seed Variance in Deep Learning & Fine-tuning models across different random seeds & Multi-seed evaluation is mandatory for valid benchmarking & Methodological foundation for seed experiments \\
+\midrule
+Lucic et al. (2018) \cite{lucic2018gans} & Algorithmic Comparison Rigor & Evaluated generative models under controlled budgets & State-of-the-art gains disappeared under seed control & Validates necessity of seed benchmarking \\
+\midrule
+Cortes \& Vapnik (1995) \cite{cortes1995support} & Support-Vector Networks & Maximum margin hyperplane with slack variables & Convex optimization yields global minimum & Linear SVM baseline model \\
+\midrule
+Quinlan (1986) \cite{quinlan1986induction} & Induction of Decision Trees & Greedy recursive feature splitting via impurity & High interpretability but high structural variance & Decision Tree baseline model \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Research Gap}
+\label{sec:research_gap}
+
+While theoretical properties of ensemble methods and the sensitivity of deep learning architectures have received substantial attention, several critical empirical research gaps remain:
+\begin{enumerate}
+    \item \textbf{Tabular Benchmark Focus:} Most recent reproducibility literature concentrates heavily on deep learning and NLP architectures, leaving tabular multi-class classification underexplored regarding multi-seed sensitivity.
+    \item \textbf{Direct Cross-Paradigm Sensitivity Comparison:} Few empirical studies benchmark the exact variance degradation profiles of tree-based versus linear-margin models side-by-side on identical high-dimensional tabular data.
+    \item \textbf{Practical Seed Audit Guidelines:} Practical frameworks for verifying bitwise reproducibility and quantifying seed-induced variance in academic project workflows remain underdeveloped.
+\end{enumerate}
+
+\section{Summary}
+\label{sec:lit_summary}
+
+The reviewed literature establishes that experimental randomness is a non-trivial, deterministic factor in machine learning outcomes. While ensemble methods like Random Forest are theoretically designed to minimize variance, quantifying their practical stability against single-tree and linear models on complex real-world data like Forest CoverType provides critical empirical validation. The subsequent chapter outlines our proposed methodology to address these questions.

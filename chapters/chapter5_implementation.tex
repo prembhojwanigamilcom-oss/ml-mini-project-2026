@@ -1,0 +1,145 @@
+\chapter{Implementation}
+\label{ch:implementation}
+
+\section{Development Environment}
+\label{sec:dev_environment}
+
+The experimental implementation was developed using Python in a Google Colaboratory environment running Ubuntu Linux. Table \ref{tab:software_stack} specifies the versions of key software libraries utilized throughout this study.
+
+\begin{table}[H]
+\centering
+\caption{Software Packages and Version Specifications}
+\label{tab:software_stack}
+\begin{tabular}{lll}
+\toprule
+\textbf{Software / Package} & \textbf{Version} & \textbf{Primary Function} \\
+\midrule
+Python & 3.10.12 & Base runtime environment \\
+NumPy & 1.24.3 & Numerical array operations and bitwise audits \\
+Pandas & 2.0.3 & Tabular data processing and statistical aggregation \\
+Scikit-learn & 1.2.2 & Machine learning algorithms, scalers, cross-validation \\
+Matplotlib & 3.7.1 & Publication-quality 2D charting and visualization \\
+Seaborn & 0.12.2 & Statistical correlation heatmaps and boxplots \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Module Implementation}
+\label{sec:module_implementation}
+
+This section presents the primary implementation logic corresponding to each stage of the experimental pipeline.
+
+\subsection{Data Ingestion and Stratified Subsampling}
+The dataset is loaded directly via \texttt{scikit-learn}. A stratified subset of 10,000 samples is extracted using \texttt{StratifiedShuffleSplit} to guarantee proportional class preservation:
+
+\begin{lstlisting}[language=Python, caption={Stratified Subsampling Implementation}]
+import numpy as np
+import pandas as pd
+from sklearn.datasets import fetch_covtype
+from sklearn.model_selection import StratifiedShuffleSplit
+
+# Fetch dataset
+data = fetch_covtype(as_frame=True)
+df = data.frame
+
+# Perform stratified subsampling to 10,000 instances
+sss = StratifiedShuffleSplit(n_splits=1, train_size=10000, random_state=42)
+for sample_idx, _ in sss.split(df, df['Cover_Type']):
+    sample_df = df.iloc[sample_idx].copy()
+
+X = sample_df.drop('Cover_Type', axis=1)
+y = sample_df['Cover_Type']
+\end{lstlisting}
+
+\subsection{Leakage-Free Preprocessing and Scaling}
+To maintain rigorous data hygiene, continuous cartographic features ($p=10$) are scaled using \texttt{StandardScaler} fit exclusively on training data, while the 44 binary indicators remain unscaled:
+
+\begin{lstlisting}[language=Python, caption={Leakage-Free Feature Scaling}]
+from sklearn.preprocessing import StandardScaler
+
+# Identify continuous vs binary columns
+continuous_cols = [
+    'Elevation', 'Aspect', 'Slope', 
+    'Horizontal_Distance_To_Hydrology', 'Vertical_Distance_To_Hydrology',
+    'Horizontal_Distance_To_Roadways', 'Hillshade_9am', 'Hillshade_Noon',
+    'Hillshade_3pm', 'Horizontal_Distance_To_Fire_Points'
+]
+binary_cols = [c for c in X.columns if c not in continuous_cols]
+
+def preprocess_splits(X_tr, X_te, cont_cols, bin_cols):
+    scaler = StandardScaler()
+    # Fit strictly on training partition
+    X_tr_cont_scaled = scaler.fit_transform(X_tr[cont_cols])
+    X_te_cont_scaled = scaler.transform(X_te[cont_cols])
+    
+    # Recombine scaled continuous with raw binary columns
+    X_tr_final = np.hstack([X_tr_cont_scaled, X_tr[bin_cols].values])
+    X_te_final = np.hstack([X_te_cont_scaled, X_te[bin_cols].values])
+    
+    return X_tr_final, X_te_final
+\end{lstlisting}
+
+\subsection{Multi-Seed Sensitivity Experiment Harness}
+The sensitivity harness evaluates algorithm performance across five distinct train-test split seeds, tracking metric variance:
+
+\begin{lstlisting}[language=Python, caption={Split Seed Sensitivity Harness}]
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score
+
+split_seeds = [0, 1, 42, 99, 123]
+results = []
+
+for seed in split_seeds:
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X, y, test_size=0.20, random_state=seed, stratify=y
+    )
+    X_tr_proc, X_te_proc = preprocess_splits(
+        X_tr, X_te, continuous_cols, binary_cols
+    )
+    
+    for name, model in models.items():
+        model.fit(X_tr_proc, y_tr)
+        preds = model.predict(X_te_proc)
+        
+        results.append({
+            'Model': name,
+            'Split_Seed': seed,
+            'Accuracy': accuracy_score(y_te, preds),
+            'Macro_F1': f1_score(y_te, preds, average='macro')
+        })
+\end{lstlisting}
+
+\subsection{Cross-Validation and Bitwise Reproducibility Verification}
+The cross-validation harness benchmarks variance across shuffle seeds ($S \in \{11, 22, 33\}$), while the reproducibility module validates deterministic output across replicated executions:
+
+\begin{lstlisting}[language=Python, caption={Deterministic Reproducibility Verification}]
+# Run 1: Execution with fixed seed 42
+rf1 = RandomForestClassifier(n_estimators=100, random_state=42)
+rf1.fit(X_tr_proc, y_tr)
+preds1 = rf1.predict(X_te_proc)
+
+# Run 2: Exact replicated execution with fixed seed 42
+rf2 = RandomForestClassifier(n_estimators=100, random_state=42)
+rf2.fit(X_tr_proc, y_tr)
+preds2 = rf2.predict(X_te_proc)
+
+# Bitwise verification
+is_identical = np.array_equal(preds1, preds2)
+mismatch_count = np.sum(preds1 != preds2)
+print(f"Reproducibility Verified: {is_identical} (Mismatches: {mismatch_count})")
+\end{lstlisting}
+
+\section{Algorithm Hyperparameter Specifications}
+\label{sec:hyperparameters}
+
+To maintain experimental control and isolate seed stochasticity, hyperparameters were kept identical across all seed iterations:
+\begin{itemize}
+    \item \textbf{Decision Tree:} \texttt{criterion='gini'}, \texttt{splitter='best'}, \texttt{max\_depth=None}, \texttt{min\_samples\_split=2}, \texttt{min\_samples\_leaf=1}, \texttt{random\_state=42}.
+    \item \textbf{Random Forest:} \texttt{n\_estimators=100}, \texttt{criterion='gini'}, \texttt{max\_features='sqrt'}, \texttt{bootstrap=True}, \texttt{n\_jobs=-1}, \texttt{random\_state=42}.
+    \item \textbf{Linear SVM:} \texttt{loss='squared\_hinge'}, \texttt{penalty='l2'}, \texttt{C=1.0}, \texttt{dual=False}, \texttt{max\_iter=3000}, \texttt{random\_state=42}.
+\end{itemize}
+
+\section{Summary}
+\label{sec:impl_summary}
+
+The implementation cleanly isolates the effect of pseudo-random seeds while enforcing strict data hygiene and hyperparameter standardization. All scripts operate deterministically with verifiable outputs. Chapter \ref{ch:results} presents the quantitative results and comparative analyses produced by this implementation.

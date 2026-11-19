@@ -1,0 +1,173 @@
+\chapter{Proposed Methodology}
+\label{ch:methodology}
+
+\section{Overview}
+\label{sec:method_overview}
+
+This chapter details the proposed experimental methodology designed to rigorously evaluate and quantify the impact of experimental randomness on machine learning models. The framework isolates random seed variations while preserving consistent feature representations, algorithmic hyperparameters, and evaluation protocols. By comparing Decision Tree, Random Forest, and Linear Support Vector Machine on the Forest CoverType dataset, the methodology evaluates both point classification efficacy and statistical distribution stability.
+
+\section{System Requirements}
+\label{sec:sys_req}
+
+To ensure complete computational reproducibility, the hardware and software environments were strictly standardized as detailed in Table \ref{tab:system_requirements}.
+
+\begin{table}[H]
+\centering
+\caption{Computational Environment and System Specifications}
+\label{tab:system_requirements}
+\begin{tabular}{p{4cm} p{10cm}}
+\toprule
+\textbf{Component} & \textbf{Specification / Value} \\
+\midrule
+Operating Environment & Google Colaboratory / Linux x86\_64 (Ubuntu 22.04 LTS) \\
+Host Architecture & Intel Xeon CPU @ 2.20GHz (2 vCPUs) \\
+Physical Memory (RAM) & 12.67 GB Available System RAM \\
+Disk Storage & 107.72 GB Available Virtual Disk \\
+Programming Language & Python 3.10.12 \\
+Core Libraries & Scikit-learn (1.2.2+), NumPy (1.24.3+), Pandas (2.0.3+), Matplotlib (3.7.1+), Seaborn (0.12.2+) \\
+Development Interface & Jupyter Notebook (.ipynb) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Proposed Approach}
+\label{sec:proposed_approach}
+
+The experimental architecture is structured into four sequential phases:
+\begin{enumerate}
+    \item \textbf{Data Ingestion \& Exploratory Analysis:} Load the 581,012-sample dataset, audit class distributions, verify absence of missing values, and construct an exact 10,000-sample stratified subset.
+    \item \textbf{Phase 1 --- Baseline Modeling:} Split data into 80\% training and 20\% testing sets using a fixed baseline seed ($S_0 = 42$), fit each classifier, and compute multi-class evaluation metrics.
+    \item \textbf{Phase 2 --- Split Seed Sensitivity Analysis:} Repeat training and evaluation across five distinct random split seeds:
+    \begin{equation}
+        \mathcal{S}_{\text{split}} = \{0, 1, 42, 99, 123\}
+    \end{equation}
+    Measure empirical mean $\mu$ and standard deviation $\sigma$ across runs to capture estimator variance.
+    \item \textbf{Phase 3 --- Cross-Validation \& Reproducibility Verification:} Perform 5-fold stratified cross-validation across three shuffle seeds ($\mathcal{S}_{\text{cv}} = \{11, 22, 33\}$) and execute duplicate back-to-back runs to verify bitwise deterministic output.
+\end{enumerate}
+
+\section{Algorithms and Computational Models}
+\label{sec:algorithms}
+
+Three diverse machine learning paradigms were selected to evaluate how model architecture influences sensitivity to stochastic perturbations.
+
+\subsection{Decision Tree Classifier (CART)}
+Classification and Regression Tree (CART) recursively partitions the input space $\mathcal{X}$ into axis-aligned rectangular regions. At each internal node $m$, the algorithm identifies the optimal feature $j$ and split threshold $t$ that minimizes node impurity. Using the Gini Impurity index:
+\begin{equation}
+    I_G(m) = 1 - \sum_{k=1}^{K} p_{mk}^2
+\end{equation}
+where $p_{mk}$ represents the proportion of training instances belonging to class $k$ in node $m$. The split selection solves:
+\begin{equation}
+    \arg\min_{j, t} \left[ \frac{N_L}{N_m} I_G(m_L) + \frac{N_R}{N_m} I_G(m_R) \right]
+\end{equation}
+Decision trees are prone to high variance: minor shifts in sample distributions alter early split decisions, cascading through subtrees.
+
+\subsection{Random Forest Classifier}
+Random Forest constructs an ensemble of $B$ de-correlated decision trees $\{T_b\}_{b=1}^B$. For each tree $b$:
+\begin{enumerate}
+    \item A bootstrap sample $\mathcal{D}_b$ of size $N$ is drawn uniformly with replacement from the training set $\mathcal{D}$;
+    \item At each node, a random subset of $m \approx \sqrt{p}$ features is selected from the total $p$ features to determine the split;
+    \item Ensemble prediction is obtained via majority voting across trees:
+    \begin{equation}
+        \hat{y} = \arg\max_k \sum_{b=1}^{B} \mathbb{I}(T_b(\mathbf{x}) = k)
+    \end{equation}
+\end{enumerate}
+By averaging across $B$ de-correlated estimators, ensemble variance is reduced by a factor proportional to the correlation between individual trees:
+\begin{equation}
+    \text{Var}(\bar{T}) = \rho \sigma^2 + \frac{1 - \rho}{B} \sigma^2
+\end{equation}
+where $\rho$ is tree-pair correlation and $\sigma^2$ is individual tree variance.
+
+\subsection{Linear Support Vector Machine (Linear SVM)}
+Linear Support Vector Classification optimizes a maximum-margin hyperplane separating classes in feature space. For multiclass classification with $K$ classes, a One-vs-Rest (OvR) formulation is utilized. For each binary subproblem, the objective minimizes the regularized soft-margin hinge loss:
+\begin{equation}
+    \min_{\mathbf{w}, b, \boldsymbol{\xi}} \frac{1}{2} \|\mathbf{w}\|^2 + C \sum_{i=1}^N \xi_i \quad \text{s.t.} \quad y_i (\mathbf{w}^T \mathbf{x}_i + b) \ge 1 - \xi_i, \quad \xi_i \ge 0
+\end{equation}
+where $C > 0$ governs the trade-off between margin maximization and margin violation penalties, and $\xi_i$ are slack variables. Because optimization depends on inner products, standardizing continuous features is critical for convergence.
+
+\section{Data Collection and Preprocessing}
+\label{sec:data_preprocessing}
+
+\subsection{Dataset Description}
+The Forest CoverType dataset comprises 581,012 geological survey records from four wilderness areas in Roosevelt National Forest, Colorado. The objective is to predict the principal forest cover type (Classes 1 through 7):
+\begin{itemize}
+    \item Class 1: Spruce/Fir
+    \item Class 2: Lodgepole Pine
+    \item Class 3: Ponderosa Pine
+    \item Class 4: Cottonwood/Willow
+    \item Class 5: Aspen
+    \item Class 6: Douglas-fir
+    \item Class 7: Krummholz
+\end{itemize}
+The 54 input features encompass:
+\begin{itemize}
+    \item 10 Continuous features: Elevation, Aspect, Slope, Horizontal/Vertical Distance to Hydrology, Horizontal Distance to Roadways, Hillshade (9am, Noon, 3pm), Horizontal Distance to Fire Points.
+    \item 4 Binary Wilderness Area indicators (Wilderness Area 1 to 4).
+    \item 40 Binary Soil Type indicators (Soil Type 1 to 40).
+\end{itemize}
+
+\subsection{Stratified Subsampling}
+Training iterative multi-seed experiments on the full 581,012 samples requires extensive computational time. To ensure rigorous multi-run evaluation while maintaining computational feasibility, a stratified random sample of $N = 10,000$ instances was generated using \texttt{StratifiedShuffleSplit} with a fixed seed ($S_{\text{sample}} = 42$). Table \ref{tab:class_distribution} demonstrates that the sample accurately mirrors the parent population distribution.
+
+\begin{table}[H]
+\centering
+\caption{Forest CoverType Class Distribution Comparison}
+\label{tab:class_distribution}
+\begin{tabular}{clrrrr}
+\toprule
+\textbf{Class} & \textbf{Cover Type Name} & \textbf{Full Count} & \textbf{Full \%} & \textbf{Sample Count} & \textbf{Sample \%} \\
+\midrule
+1 & Spruce/Fir & 211,840 & 36.46\% & 3,646 & 36.46\% \\
+2 & Lodgepole Pine & 283,301 & 48.76\% & 4,876 & 48.76\% \\
+3 & Ponderosa Pine & 35,754 & 6.15\% & 615 & 6.15\% \\
+4 & Cottonwood/Willow & 2,747 & 0.47\% & 47 & 0.47\% \\
+5 & Aspen & 9,493 & 1.63\% & 163 & 1.63\% \\
+6 & Douglas-fir & 17,367 & 2.99\% & 299 & 2.99\% \\
+7 & Krummholz & 20,510 & 3.53\% & 353 & 3.53\% \\
+\midrule
+\textbf{Total} & & \textbf{581,012} & \textbf{100.00\%} & \textbf{10,000} & \textbf{100.00\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Hygiene and Feature Normalization}
+Data preprocessing adhered to rigorous standards to prevent data leakage:
+\begin{enumerate}
+    \item \textbf{Leakage Prevention:} Feature scalers were fitted strictly on the training partition ($\mathbf{X}_{\text{train}}$) and subsequently applied to transform test instances ($\mathbf{X}_{\text{test}}$).
+    \item \textbf{Continuous Feature Standardization:} The 10 continuous cartographic variables were normalized using z-score standardization:
+    \begin{equation}
+        z = \frac{x - \mu_{\text{train}}}{\sigma_{\text{train}}}
+    \end{equation}
+    \item \textbf{Preservation of Binary Encodings:} The 44 one-hot encoded binary variables (Wilderness Areas and Soil Types) were preserved in raw boolean format $\{0, 1\}$ to maintain sparsity and prevent artificial distortion of categorical distances.
+\end{enumerate}
+
+\section{Evaluation Metrics}
+\label{sec:evaluation_metrics}
+
+Performance is quantified across multiple complementary metrics:
+\begin{itemize}
+    \item \textbf{Overall Accuracy:} Proportion of correctly classified observations:
+    \begin{equation}
+        \text{Accuracy} = \frac{\sum_{k=1}^K TP_k}{N}
+    \end{equation}
+    \item \textbf{Macro-Averaged Precision:} Arithmetic mean of precision scores across all $K=7$ classes, giving equal weight to minority and majority classes:
+    \begin{equation}
+        \text{Macro Precision} = \frac{1}{K} \sum_{k=1}^K \frac{TP_k}{TP_k + FP_k}
+    \end{equation}
+    \item \textbf{Macro-Averaged Recall:} Arithmetic mean of class sensitivities:
+    \begin{equation}
+        \text{Macro Recall} = \frac{1}{K} \sum_{k=1}^K \frac{TP_k}{TP_k + FN_k}
+    \end{equation}
+    \item \textbf{Macro-Averaged F1-Score:} Harmonic mean of macro precision and macro recall:
+    \begin{equation}
+        \text{Macro F1} = \frac{1}{K} \sum_{k=1}^K \frac{2 \cdot P_k \cdot R_k}{P_k + R_k}
+    \end{equation}
+    \item \textbf{Sample Standard Deviation ($\sigma$):} Quantifies score dispersion across $M$ distinct random split seeds:
+    \begin{equation}
+        \sigma = \sqrt{\frac{1}{M-1} \sum_{m=1}^M (Acc_m - \bar{Acc})^2}
+    \end{equation}
+\end{itemize}
+
+\section{Summary}
+\label{sec:method_summary}
+
+The proposed methodology establishes a rigorous, controlled experimental framework for evaluating machine learning stability. By standardizing dataset subsampling, feature preprocessing, hyperparameter configurations, and evaluation metrics, the pipeline isolates pseudo-random seed effects across distinct algorithm families. The subsequent chapter translates this methodology into concrete system architecture and design workflows.
