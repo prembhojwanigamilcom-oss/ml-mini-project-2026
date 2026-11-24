@@ -131,7 +131,14 @@ Linear SVM & 70.85\% $\pm$ 1.05\% & 71.15\% $\pm$ 0.98\% & 70.90\% $\pm$ 1.12\% 
 \end{tabular}
 \end{table}
 
-The cross-validation findings demonstrate that cross-validation fold averaging provides an exceptionally consistent estimator ($\Delta_{\mu} < 0.3\%$ across shuffle seeds). However, individual folds within a single run continue to experience variability ($\pm 0.54\%$ to $\pm 1.12\%$), underscoring that reporting cross-validation standard deviations is essential for rigorous scientific benchmarking.
+The cross-validation findings demonstrate that cross-validation fold averaging provides an exceptionally consistent estimator ($\Delta_{\mu} < 0.3\%$ across shuffle seeds). However, individual folds within a single run continue to experience variability ($\pm 0.54\%$ to $\pm 1.12\%$), underscoring that reporting cross-validation standard deviations is essential for rigorous scientific benchmarking. Figure \ref{fig:cv_accuracy_errorbars} illustrates the mean cross-validation accuracy along with standard deviation error bars for each model architecture.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/fig_cv_accuracy_errorbars.png}
+\caption{Mean Cross-Validation Accuracy with Error Bars (Standard Deviation) Across Evaluated Models}
+\label{fig:cv_accuracy_errorbars}
+\end{figure}
 
 % =========================================================================
 % EXPERIMENT 1: DATASET SIZE EXPERIMENT
@@ -146,7 +153,7 @@ The purpose of this experiment is to empirically evaluate how the quantity of av
 In accordance with the implementation in the project notebook, training subsets of sizes $N_{\text{train}} \in \{2000, 5000, 8000\}$ were sampled from the training partition using \texttt{train\_test\_split} with a fixed seed (\texttt{random\_state=42}) and stratified sampling (\texttt{stratify=y\_train}). To prevent data leakage, a dedicated \texttt{ColumnTransformer} pipeline fitted \texttt{StandardScaler} strictly on the continuous numerical features of each respective training subset and transformed the common held-out test set ($N_{\text{test}} = 2000$). Both Decision Tree (\texttt{random\_state=42}) and Random Forest (\texttt{n\_estimators=100, random\_state=42}) were evaluated across all three dataset scales.
 
 \subsection{Experimental Results and Visualizations}
-Table \ref{tab:dataset_size_results} presents the quantitative metrics recorded directly during notebook execution. Figures \ref{fig:exp1_screenshot_table} and \ref{fig:exp1_screenshot_plot} present the output screenshots from the experimental execution.
+Table \ref{tab:dataset_size_results} presents the quantitative metrics recorded directly during notebook execution, while Figure \ref{fig:exp1_screenshot_plot} illustrates the accuracy scaling curves across the training sizes.
 
 \begin{table}[H]
 \centering
@@ -170,15 +177,8 @@ Table \ref{tab:dataset_size_results} presents the quantitative metrics recorded 
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/exp1_dataset_size_table.jpg}
-\caption{Output Screenshot: Tabular Results of Dataset Size Experiment}
-\label{fig:exp1_screenshot_table}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.88\textwidth]{figures/exp1_dataset_size_plot.jpg}
-\caption{Output Screenshot: Line Plot of Accuracy vs. Training Dataset Size}
+\includegraphics[width=0.82\textwidth]{figures/fig_exp1_dataset_size_clean.png}
+\caption{Effect of Training Dataset Size on Classification Accuracy}
 \label{fig:exp1_screenshot_plot}
 \end{figure}
 
@@ -211,7 +211,7 @@ Following the notebook implementation, two distinct hyperparameter sweeps were e
 Evaluation tracked Overall Accuracy, Macro-F1 score, and cumulative training and prediction wall-clock time in seconds.
 
 \subsection{Experimental Results and Visualizations}
-Table \ref{tab:hyperparameter_results} summarizes the exact empirical results extracted from the notebook execution. Figures \ref{fig:exp2_screenshot_table} and \ref{fig:exp2_screenshot_plot} present the corresponding output screenshots.
+Table \ref{tab:hyperparameter_results} summarizes the exact empirical results extracted from the notebook execution, and Figure \ref{fig:exp2_screenshot_plot} illustrates the comparative accuracy across settings.
 
 \begin{table}[H]
 \centering
@@ -234,15 +234,8 @@ Random Forest & \texttt{n\_estimators=200} & \textbf{0.9543} & \textbf{0.9250} &
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/exp2_hyperparameter_table.jpg}
-\caption{Output Screenshot: Tabular Results of Hyperparameter Experiment}
-\label{fig:exp2_screenshot_table}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.92\textwidth]{figures/exp2_hyperparameter_plot.jpg}
-\caption{Output Screenshot: Bar Chart of Accuracy Across Hyperparameter Configurations}
+\includegraphics[width=0.85\textwidth]{figures/fig_exp2_hyperparameter_clean.png}
+\caption{Effect of Hyperparameter Settings on Classification Accuracy}
 \label{fig:exp2_screenshot_plot}
 \end{figure}
 
@@ -274,7 +267,7 @@ The experiment tested two distinct feature subsets on the 80/20 train-test parti
 For each feature group, a \texttt{ColumnTransformer} applied \texttt{StandardScaler} to the designated continuous variables with remainder dropped. Both Decision Tree (\texttt{random\_state=42}) and Random Forest (\texttt{n\_estimators=100, random\_state=42}) were trained and evaluated on the identical test partition using Overall Accuracy and Macro-F1 score.
 
 \subsection{Experimental Results and Visualizations}
-Table \ref{tab:feature_group_results} presents the quantitative ablation metrics extracted from the notebook run. Figures \ref{fig:exp3_screenshot_table} and \ref{fig:exp3_screenshot_plot} present the corresponding output screenshots.
+Table \ref{tab:feature_group_results} presents the quantitative ablation metrics extracted from the notebook run, and Figure \ref{fig:exp3_screenshot_plot} depicts the model performance by feature group.
 
 \begin{table}[H]
 \centering
@@ -295,15 +288,8 @@ All features & 54 & Random Forest & \textbf{0.9533} & \textbf{0.9240} \\
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/exp3_feature_group_table.jpg}
-\caption{Output Screenshot: Tabular Results of Feature Group Comparison}
-\label{fig:exp3_screenshot_table}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.88\textwidth]{figures/exp3_feature_group_plot.jpg}
-\caption{Output Screenshot: Bar Chart of Model Performance by Feature Group}
+\includegraphics[width=0.82\textwidth]{figures/fig_exp3_feature_group_clean.png}
+\caption{Model Performance by Feature Group (10 Terrain Features vs. All 54 Features)}
 \label{fig:exp3_screenshot_plot}
 \end{figure}
 

@@ -18,38 +18,49 @@ The pipeline executes deterministically through explicitly managed random seeds,
 \section{System Workflow and Use Case Modeling}
 \label{sec:system_workflow}
 
-The operational workflow follows a strict sequential lifecycle:
+The operational workflow follows a strict, sequential experimental lifecycle designed to guarantee reproducibility, modular evaluation, and rigorous empirical validation:
 \begin{enumerate}
-    \item \textbf{Ingestion Trigger:} The user or automated script initiates the pipeline, loading the 581,012 records from the scikit-learn repository.
-    \item \textbf{Exploratory Profiling:} Data distributions, continuous feature skews, and inter-feature correlations are profiled.
-    \item \textbf{Stratified Sampling:} A 10,000-instance subsample is extracted using a fixed random seed to maintain exact class proportions.
-    \item \textbf{Phase 1 Evaluation:} Baseline models (Decision Tree, Random Forest, Linear SVM) are trained on an 80/20 train-test partition using baseline seed $S_0=42$.
-    \item \textbf{Phase 2 Sensitivity Assessment:} The data partitioner iterates over five distinct random seeds ($\mathcal{S}_{\text{split}} = \{0, 1, 42, 99, 123\}$). For each seed, preprocessing scalers are re-fit strictly on the training partition, models are trained from scratch, and test metrics are logged.
-    \item \textbf{Phase 3 Cross-Validation \& Reproducibility:} 5-fold cross-validation is executed across three shuffle seeds ($\mathcal{S}_{\text{cv}} = \{11, 22, 33\}$), followed by duplicate back-to-back runs to verify bitwise output equality.
-    \item \textbf{Reporting \& Visualization:} Aggregated statistical summaries, standard deviations, and diagnostic plots are generated.
+    \item \textbf{Ingestion Trigger:} The pipeline loads the full Forest CoverType dataset (581,012 records across 54 cartographic, wilderness, and soil features) from the repository.
+    \item \textbf{Exploratory Profiling:} Data distributions, continuous feature skews, multi-collinearity, and class imbalances across all 7 cover types are comprehensively profiled.
+    \item \textbf{Stratified Sampling:} A class-balanced 10,000-instance subsample is extracted using a fixed random seed (\texttt{random\_state=42}) to preserve exact population class proportions.
+    \item \textbf{Phase 1 Baseline Benchmark:} Baseline models (Decision Tree, Random Forest, Linear SVM) are trained on a standardized 80/20 train-test partition with baseline seed $S_0=42$.
+    \item \textbf{Phase 2 Split-Seed Sensitivity Assessment:} The data partitioner systematically iterates over five distinct random seeds ($\mathcal{S}_{\text{split}} = \{0, 1, 42, 99, 123\}$). For each partition, preprocessing scalers are fitted strictly on the training partition, models are trained from scratch, and test accuracy and Macro-F1 are logged to measure stochastic sensitivity.
+    \item \textbf{Phase 3 Cross-Validation \& Dispersion Analysis:} 5-fold stratified cross-validation is evaluated across three distinct shuffle seeds ($\mathcal{S}_{\text{cv}} = \{11, 22, 33\}$), computing mean accuracy and standard deviation error bars across folds.
+    \item \textbf{Phase 4 Training Dataset Size Scaling:} The sample volume is dynamically scaled across $N_{\text{train}} \in \{2000, 5000, 8000\}$ samples to assess asymptotic learning trajectories and minority class Macro-F1 dynamics.
+    \item \textbf{Phase 5 Hyperparameter Capacity Tuning:} Model capacity and regularization trade-offs are analyzed by sweeping Decision Tree maximum depth ($d \in \{5, 10, \text{None}\}$) and Random Forest ensemble tree counts ($B \in \{50, 100, 200\}$).
+    \item \textbf{Phase 6 Feature Group Ablation:} The discriminative power of the 10 continuous terrain features is evaluated in isolation and compared against the full 54-feature set to assess dimensional efficiency.
+    \item \textbf{Phase 7 Bitwise Reproducibility Audit:} Duplicate back-to-back training runs are executed under identical seed configurations to perform strict bitwise verification checks ($\hat{\mathbf{y}}_1 == \hat{\mathbf{y}}_2$).
+    \item \textbf{Phase 8 Reporting \& Diagnostic Visualization:} Publication-grade metric tables, error bar charts, sensitivity histograms, and performance trade-off curves are compiled and rendered.
 \end{enumerate}
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=1.3cm, auto]
-    \tikzstyle{block} = [rectangle, draw, fill=blue!10, text width=12em, text centered, rounded corners, minimum height=2.2em]
-    \tikzstyle{cloud} = [ellipse, draw, fill=green!15, text width=10em, text centered, minimum height=2.0em]
-    \tikzstyle{line} = [draw, -latex', thick]
-    
-    \node [cloud] (data) {Forest CoverType Data\\(581,012 samples, 54 features)};
-    \node [block, below of=data] (eda) {EDA \& Stratified Sample\\(10,000 samples, Class Preserved)};
+\begin{tikzpicture}[
+    node distance=1.15cm and 1.5cm, 
+    auto,
+    block/.style={rectangle, draw=blue!80!black, fill=blue!8, text width=16em, text centered, rounded corners=3pt, minimum height=2.2em, font=\small},
+    cloud/.style={ellipse, draw=green!70!black, fill=green!10, text width=14em, text centered, minimum height=2.3em, font=\small},
+    expblock/.style={rectangle, draw=orange!80!black, fill=orange!8, text width=16em, text centered, rounded corners=3pt, minimum height=2.2em, font=\small},
+    line/.style={draw=black!70, -latex', thick}
+]
+    \node [cloud] (data) {Forest CoverType Dataset\\(581,012 samples, 54 features)};
+    \node [block, below of=data] (eda) {EDA \& Stratified Sampling\\(10,000 samples, Class Preserved)};
     \node [block, below of=eda] (split) {Controlled Data Partitioning\\(Split Seeds: 0, 1, 42, 99, 123)};
-    \node [block, below of=split] (train) {Model Training \& Scaling\\(DT, RF, Linear SVM)};
-    \node [block, below of=train] (cv) {Cross-Validation \& Repro Audit\\(CV Seeds: 11, 22, 33)};
-    \node [cloud, below of=cv] (out) {Stability Analytics \& Plots\\($\mu, \sigma$, Bitwise Verification)};
+    \node [block, below of=split] (train) {Model Training \& Scaling Hub\\(DT, RF, Linear SVM)};
+    \node [block, below of=train] (cv) {Cross-Validation \& Error Bars\\(5-Fold CV Seeds: 11, 22, 33)};
+    \node [expblock, below of=cv] (exps) {Parametric Experiments\\(Data Size, Hyperparameters, Feature Groups)};
+    \node [block, below of=exps] (repro) {Bitwise Reproducibility Audit\\($\hat{\mathbf{y}}_1 == \hat{\mathbf{y}}_2$ Equality Verification)};
+    \node [cloud, below of=repro] (out) {Stability Analytics \& Plots\\($\mu, \sigma$, Publication Curves, Diagnostic Figures)};
     
     \path [line] (data) -- (eda);
     \path [line] (eda) -- (split);
     \path [line] (split) -- (train);
     \path [line] (train) -- (cv);
-    \path [line] (cv) -- (out);
+    \path [line] (cv) -- (exps);
+    \path [line] (exps) -- (repro);
+    \path [line] (repro) -- (out);
 \end{tikzpicture}
-\caption{System Workflow Pipeline Diagram}
+\caption{Comprehensive End-to-End System Workflow Pipeline Diagram}
 \label{fig:workflow_flowchart}
 \end{figure}
 
