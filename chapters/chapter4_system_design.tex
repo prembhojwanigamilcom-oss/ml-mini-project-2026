@@ -35,31 +35,7 @@ The operational workflow follows a strict, sequential experimental lifecycle des
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[
-    node distance=1.15cm and 1.5cm, 
-    auto,
-    block/.style={rectangle, draw=blue!80!black, fill=blue!8, text width=16em, text centered, rounded corners=3pt, minimum height=2.2em, font=\small},
-    cloud/.style={ellipse, draw=green!70!black, fill=green!10, text width=14em, text centered, minimum height=2.3em, font=\small},
-    expblock/.style={rectangle, draw=orange!80!black, fill=orange!8, text width=16em, text centered, rounded corners=3pt, minimum height=2.2em, font=\small},
-    line/.style={draw=black!70, -latex', thick}
-]
-    \node [cloud] (data) {Forest CoverType Dataset\\(581,012 samples, 54 features)};
-    \node [block, below of=data] (eda) {EDA \& Stratified Sampling\\(10,000 samples, Class Preserved)};
-    \node [block, below of=eda] (split) {Controlled Data Partitioning\\(Split Seeds: 0, 1, 42, 99, 123)};
-    \node [block, below of=split] (train) {Model Training \& Scaling Hub\\(DT, RF, Linear SVM)};
-    \node [block, below of=train] (cv) {Cross-Validation \& Error Bars\\(5-Fold CV Seeds: 11, 22, 33)};
-    \node [expblock, below of=cv] (exps) {Parametric Experiments\\(Data Size, Hyperparameters, Feature Groups)};
-    \node [block, below of=exps] (repro) {Bitwise Reproducibility Audit\\($\hat{\mathbf{y}}_1 == \hat{\mathbf{y}}_2$ Equality Verification)};
-    \node [cloud, below of=repro] (out) {Stability Analytics \& Plots\\($\mu, \sigma$, Publication Curves, Diagnostic Figures)};
-    
-    \path [line] (data) -- (eda);
-    \path [line] (eda) -- (split);
-    \path [line] (split) -- (train);
-    \path [line] (train) -- (cv);
-    \path [line] (cv) -- (exps);
-    \path [line] (exps) -- (repro);
-    \path [line] (repro) -- (out);
-\end{tikzpicture}
+\includegraphics[width=0.72\textwidth]{figures/fig_system_workflow_diagram.png}
 \caption{Comprehensive End-to-End System Workflow Pipeline Diagram}
 \label{fig:workflow_flowchart}
 \end{figure}
