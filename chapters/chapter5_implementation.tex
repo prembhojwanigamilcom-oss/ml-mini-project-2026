@@ -129,6 +129,98 @@ mismatch_count = np.sum(preds1 != preds2)
 print(f"Reproducibility Verified: {is_identical} (Mismatches: {mismatch_count})")
 \end{lstlisting}
 
+\subsection{Dataset Size Scaling Pipeline Implementation}
+To test model scalability, training subsets of size $2,000$, $5,000$, and $8,000$ are sampled with independent preprocessing to avoid data leakage:
+
+\begin{lstlisting}[language=Python, caption={Dataset Size Scaling Implementation}]
+size_rows = []
+for size in [2000, 5000, 8000]:
+    if size == len(X_train_raw):
+        X_small, y_small = X_train_raw.copy(), y_train.copy()
+    else:
+        X_small, _, y_small, _ = train_test_split(
+            X_train_raw, y_train, train_size=size,
+            random_state=42, stratify=y_train
+        )
+    size_preprocessor = ColumnTransformer(
+        transformers=[("scale", StandardScaler(), numeric_columns)],
+        remainder="drop"
+    )
+    X_small_proc = size_preprocessor.fit_transform(X_small)
+    X_test_proc = size_preprocessor.transform(X_test_raw)
+
+    for name, clf in [("Decision Tree", DecisionTreeClassifier(random_state=42)),
+                      ("Random Forest", RandomForestClassifier(n_estimators=100, random_state=42))]:
+        t0 = time.time()
+        clf.fit(X_small_proc, y_small)
+        pred = clf.predict(X_test_proc)
+        size_rows.append({
+            "Training_Size": size, "Model": name,
+            "Accuracy": accuracy_score(y_test, pred),
+            "F1_macro": f1_score(y_test, pred, average="macro", zero_division=0),
+            "Time_sec": time.time() - t0
+        })
+\end{lstlisting}
+
+\subsection{Hyperparameter Evaluation Pipeline Implementation}
+Systematic sweeps for Decision Tree maximum depth and Random Forest tree count:
+
+\begin{lstlisting}[language=Python, caption={Hyperparameter Evaluation Implementation}]
+parameter_rows = []
+# Decision Tree max_depth sweep
+for depth in [5, 10, None]:
+    model = DecisionTreeClassifier(max_depth=depth, random_state=42)
+    t0 = time.time()
+    model.fit(X_train, y_train)
+    pred = model.predict(X_test)
+    parameter_rows.append({
+        "Model": "Decision Tree", "Setting": f"max_depth={depth}",
+        "Accuracy": accuracy_score(y_test, pred),
+        "F1_macro": f1_score(y_test, pred, average="macro", zero_division=0),
+        "Time_sec": time.time() - t0
+    })
+
+# Random Forest n_estimators sweep
+for trees in [50, 100, 200]:
+    model = RandomForestClassifier(n_estimators=trees, random_state=42)
+    t0 = time.time()
+    model.fit(X_train, y_train)
+    pred = model.predict(X_test)
+    parameter_rows.append({
+        "Model": "Random Forest", "Setting": f"n_estimators={trees}",
+        "Accuracy": accuracy_score(y_test, pred),
+        "F1_macro": f1_score(y_test, pred, average="macro", zero_division=0),
+        "Time_sec": time.time() - t0
+    })
+\end{lstlisting}
+
+\subsection{Feature Group Ablation Implementation}
+Ablation comparing 10 terrain features against all 54 features:
+
+\begin{lstlisting}[language=Python, caption={Feature Group Ablation Implementation}]
+feature_rows = []
+for group_name, cols in [
+    ("Terrain features only", terrain_features),
+    ("All features", X.columns.tolist())
+]:
+    feat_prep = ColumnTransformer(
+        transformers=[("scale", StandardScaler(), cols)],
+        remainder="drop"
+    )
+    X_tr_f = feat_prep.fit_transform(X_train_raw[cols])
+    X_te_f = feat_prep.transform(X_test_raw[cols])
+
+    for name, clf in [("Decision Tree", DecisionTreeClassifier(random_state=42)),
+                      ("Random Forest", RandomForestClassifier(n_estimators=100, random_state=42))]:
+        clf.fit(X_tr_f, y_train)
+        pred = clf.predict(X_te_f)
+        feature_rows.append({
+            "Feature_Group": group_name, "Number_of_Features": len(cols),
+            "Model": name, "Accuracy": accuracy_score(y_test, pred),
+            "F1_macro": f1_score(y_test, pred, average="macro", zero_division=0)
+        })
+\end{lstlisting}
+
 \section{Algorithm Hyperparameter Specifications}
 \label{sec:hyperparameters}
 

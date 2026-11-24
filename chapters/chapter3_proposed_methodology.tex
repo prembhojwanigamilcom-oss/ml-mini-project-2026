@@ -33,7 +33,7 @@ Development Interface & Jupyter Notebook (.ipynb) \\
 \section{Proposed Approach}
 \label{sec:proposed_approach}
 
-The experimental architecture is structured into four sequential phases:
+The experimental architecture is structured into sequential investigatory phases:
 \begin{enumerate}
     \item \textbf{Data Ingestion \& Exploratory Analysis:} Load the 581,012-sample dataset, audit class distributions, verify absence of missing values, and construct an exact 10,000-sample stratified subset.
     \item \textbf{Phase 1 --- Baseline Modeling:} Split data into 80\% training and 20\% testing sets using a fixed baseline seed ($S_0 = 42$), fit each classifier, and compute multi-class evaluation metrics.
@@ -43,6 +43,9 @@ The experimental architecture is structured into four sequential phases:
     \end{equation}
     Measure empirical mean $\mu$ and standard deviation $\sigma$ across runs to capture estimator variance.
     \item \textbf{Phase 3 --- Cross-Validation \& Reproducibility Verification:} Perform 5-fold stratified cross-validation across three shuffle seeds ($\mathcal{S}_{\text{cv}} = \{11, 22, 33\}$) and execute duplicate back-to-back runs to verify bitwise deterministic output.
+    \item \textbf{Phase 4 --- Dataset Size Scaling Experiment:} Evaluate model learning dynamics across three training sample volumes ($N \in \{2000, 5000, 8000\}$) on a standardized holdout test set to quantify sample complexity.
+    \item \textbf{Phase 5 --- Hyperparameter Optimization Analysis:} Benchmark inductive bias variations by tuning tree depth ($d \in \{5, 10, \text{None}\}$) for Decision Trees and ensemble size ($B \in \{50, 100, 200\}$) for Random Forests.
+    \item \textbf{Phase 6 --- Feature Group Contribution Analysis:} Perform feature ablation comparing the 10 continuous terrain features against the complete 54-feature set to assess dimensional utility.
 \end{enumerate}
 
 \section{Algorithms and Computational Models}
@@ -140,6 +143,45 @@ Data preprocessing adhered to rigorous standards to prevent data leakage:
     \item \textbf{Preservation of Binary Encodings:} The 44 one-hot encoded binary variables (Wilderness Areas and Soil Types) were preserved in raw boolean format $\{0, 1\}$ to maintain sparsity and prevent artificial distortion of categorical distances.
 \end{enumerate}
 
+\section{Theoretical Formulations of Extended Experiments}
+\label{sec:extended_exp_theory}
+
+To provide an exhaustive characterization of model behavior beyond basic random seed stability, three targeted experimental extensions were formulated:
+
+\subsection{Theoretical Foundations of Dataset Size Scaling}
+\label{sec:theory_data_size}
+
+The volume of available training data directly influences learning capacity and generalization error. In statistical learning theory, the generalization error bound of an estimator $h \in \mathcal{H}$ with Vapnik-Chervonenkis (VC) dimension $d_{\text{VC}}$ over $N$ independent training samples scales according to:
+\begin{equation}
+    \epsilon(h) \le \hat{\epsilon}(h) + \mathcal{O}\left( \sqrt{\frac{d_{\text{VC}} \log(N / d_{\text{VC}}) + \log(1/\delta)}{N}} \right)
+\end{equation}
+with probability at least $1 - \delta$. As sample volume $N$ increases, the variance term decreases asymptotically, shrinking the gap between empirical training error and true generalization risk. 
+
+In multi-class imbalanced ecological datasets such as Forest CoverType, dataset size plays a critical role in minority class boundary estimation. With rare classes comprising as little as $0.47\%$ of the population (Class 4, Cottonwood/Willow), a small training sample of $N=2,000$ provides fewer than 10 training instances of rare classes, starving split criteria of statistical power. Testing across $N \in \{2000, 5000, 8000\}$ systematically evaluates sample complexity, empirical learning rate, and minority-class sensitivity on a held-out test set ($N_{\text{test}} = 2,000$).
+
+\subsection{Theoretical Principles of Hyperparameter Tuning}
+\label{sec:theory_hyperparameter}
+
+Hyperparameters are external algorithmic configurations chosen prior to training that govern model flexibility, hypothesis space complexity, and inductive bias. Unlike internal parameters learned via optimization (such as tree split thresholds or SVM weights), hyperparameters control the regularization-capacity trade-off:
+\begin{itemize}
+    \item \textbf{Decision Tree Maximum Depth (\texttt{max\_depth}):} Controls the maximum allowable length of root-to-leaf paths. An unconstrained tree (\texttt{max\_depth=None}) recursively partitions data until leaves are pure ($I_G = 0$). While this achieves zero training error, it models noise and localized anomalies, leading to severe overfitting. Restricting depth to $d \in \{5, 10\}$ acts as structural regularization, preventing over-specialized splits and reducing variance at the cost of potential bias.
+    \item \textbf{Random Forest Ensemble Size (\texttt{n\_estimators}):} Controls the number of de-correlated decision trees $B \in \{50, 100, 200\}$ aggregated via bootstrap aggregating. Leo Breiman proved that as ensemble size increases, Random Forests do not overfit; rather, generalization error converges to an upper bound:
+    \begin{equation}
+        \lim_{B \to \infty} PE^* = \frac{\rho(1 - s^2)}{s^2}
+    \end{equation}
+    where $\rho$ denotes mean tree-pair correlation and $s$ is classifier strength. However, increasing $B$ scales computational training and inference time linearly. Evaluating $B \in \{50, 100, 200\}$ measures the empirical point of diminishing accuracy returns against computational overhead.
+\end{itemize}
+
+\subsection{Theoretical Foundations of Feature Group Selection}
+\label{sec:theory_feature_group}
+
+Feature selection identifies a compact, highly informative subset of attributes $\mathcal{X}^* \subset \mathcal{X}$ that maximizes class separability while mitigating the curse of dimensionality. The Forest CoverType dataset presents an intrinsic dichotomy between two distinct attribute modalities:
+\begin{enumerate}
+    \item \textbf{Continuous Terrain Features ($p=10$):} Spatial and topographic variables (Elevation, Aspect, Slope, Hydrology distances, Roadway distance, Fire point distance, Hillshade indices). These continuous attributes directly capture physical geography, sunlight exposure, and moisture gradients.
+    \item \textbf{Sparse Binary Indicators ($p=44$):} 4 binary Wilderness Area indicators and 40 binary Soil Type indicators. These one-hot encoded variables introduce high dimensionality and extreme sparsity ($>95\%$ zero entries).
+\end{enumerate}
+Comparing model performance on ``Terrain features only'' ($p=10$) against ``All features'' ($p=54$) isolates the marginal utility of geological indicators. This experiment evaluates whether continuous topographic features alone provide sufficient predictive signal, and how tree-based partitioning algorithms handle the addition of 44 sparse binary flags.
+
 \section{Evaluation Metrics}
 \label{sec:evaluation_metrics}
 
@@ -165,9 +207,10 @@ Performance is quantified across multiple complementary metrics:
     \begin{equation}
         \sigma = \sqrt{\frac{1}{M-1} \sum_{m=1}^M (Acc_m - \bar{Acc})^2}
     \end{equation}
+    \item \textbf{Computational Execution Time ($T_{\text{sec}}$):} Total wall-clock time in seconds recorded for model fitting and batch test inference.
 \end{itemize}
 
 \section{Summary}
 \label{sec:method_summary}
 
-The proposed methodology establishes a rigorous, controlled experimental framework for evaluating machine learning stability. By standardizing dataset subsampling, feature preprocessing, hyperparameter configurations, and evaluation metrics, the pipeline isolates pseudo-random seed effects across distinct algorithm families. The subsequent chapter translates this methodology into concrete system architecture and design workflows.
+The proposed methodology establishes a rigorous, controlled experimental framework for evaluating machine learning stability, capacity scaling, and feature sensitivity. By standardizing dataset subsampling, feature preprocessing, hyperparameter configurations, and evaluation metrics, the pipeline isolates pseudo-random seed effects and algorithmic parameters across distinct model families. The subsequent chapters detail the system architecture and empirical findings produced by this framework.
